@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <title>StealthMonitor – Map</title>
 
-  <!-- CSS via CDN para evitar problemas de static serve -->
+  <!-- Leaflet via CDN -->
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"
@@ -14,23 +14,26 @@
 
   <style>
     body, html { margin:0; padding:0; height:100%; }
-    #map { width:100%; height:100%; }
-    #fallback {
-      position:absolute; top:50%; left:50%;
-      transform:translate(-50%,-50%);
-      font-family:sans-serif; color:#666;
-      text-align:center;
+    #map { width:100%; height:100%; display:none; }
+    #message {
+      position:absolute; top:0; left:0; right:0; bottom:0;
+      display:flex; align-items:center; justify-content:center;
+      background:#fff; color:#333; padding:1rem; text-align:center;
+      font-family:sans-serif;
     }
+    #message.hidden { display:none; }
+    #message.error { background:#fee; color:#900; }
   </style>
 </head>
 <body>
-  <div id="map"></div>
-  <div id="fallback" style="display:none;">
-    <p>Carregando mapa...</p>
-    <p>Se continuar branco, verifique a conexão ou o console do navegador.</p>
-  </div>
 
-  <!-- JS via CDN -->
+  <!-- Mapa ficará visível se tudo carregar -->
+  <div id="map"></div>
+
+  <!-- Mensagens de status/erro -->
+  <div id="message">Carregando mapa…</div>
+
+  <!-- Leaflet JS via CDN -->
   <script
     src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"
     integrity="sha256-kG14XSPAsYxQbL7Q6ey8qCMbKg2Ykef9QbsGU4R+DrM="
@@ -38,24 +41,48 @@
   ></script>
 
   <script>
-    const fallback = document.getElementById('fallback');
-    const mapDiv   = document.getElementById('map');
+    const msgDiv = document.getElementById('message');
+    const mapDiv = document.getElementById('map');
 
-    // Tenta inicializar o mapa, se falhar exibe fallback
-    try {
-      const map = L.map('map').setView([0, 0], 2);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors'
-      }).addTo(map);
+    // Helper para exibir mensagens de erro
+    function showError(text) {
+      msgDiv.textContent = text;
+      msgDiv.classList.add('error');
+      msgDiv.classList.remove('hidden');
+      mapDiv.style.display = 'none';
+    }
 
-      // Fetch dados
-      fetch('/api/data')
-        .then(res => res.json())
-        .then(points => {
-          console.log('Pontos recebidos:', points);
-          if (points.length === 0) {
-            console.log('Nenhum ponto para plotar ainda.');
+    // Inicia tudo
+    (async function init() {
+      try {
+        // 1) Inicializa mapa
+        mapDiv.style.display = 'block';
+        const map = L.map('map').setView([0, 0], 2);
+
+        // 1.1) Tile layer com handler de erro
+        const tileLayer = L.tileLayer(
+          'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap',
           }
+        );
+        tileLayer.on('tileerror', () => {
+          showError('Erro ao carregar os tiles do mapa. Verifique sua conexão.');
+        });
+        tileLayer.addTo(map);
+
+        // 2) Busca dados da API
+        msgDiv.textContent = 'Buscando pontos…';
+        const res = await fetch('/api/data');
+        if (!res.ok) {
+          throw new Error(`API retornou HTTP ${res.status}`);
+        }
+        const points = await res.json();
+
+        // 3) Plota marcadores ou avisa vazio
+        if (points.length === 0) {
+          msgDiv.textContent = 'Nenhum dado coletado ainda. Aguarde o app enviar.';
+        } else {
+          msgDiv.classList.add('hidden');
           points.forEach(p => {
             if (p.location && p.location.lat) {
               L.marker([p.location.lat, p.location.lng])
@@ -63,18 +90,11 @@
                .addTo(map);
             }
           });
-        })
-        .catch(err => console.error('Erro carregando /api/data:', err));
-    } catch (e) {
-      console.error('Erro inicializando Leaflet:', e);
-      // Caso algo dê errado, esconde o mapDiv e mostra mensagem
-      mapDiv.style.display = 'none';
-      fallback.style.display = 'block';
-    }
-  </script>
-</body>
-</html>
-      .catch(console.error);
+        }
+      } catch (e) {
+        showError('Erro: ' + e.message);
+      }
+    })();
   </script>
 </body>
 </html>
