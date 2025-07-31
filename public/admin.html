@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>StealthMonitor Admin</title>
+  <style>
+    body { font-family: sans-serif; margin:20px }
+    input, button { padding:8px; margin:4px 0; width:100% }
+  </style>
+</head>
+<body>
+  <h1>Painel Admin</h1>
+  <p>Envie comando <strong>hardreset</strong> para um usuário:</p>
+  <input id="user" placeholder="Digite o username" />
+  <button id="send">Enviar Hard-Reset</button>
+  <pre id="status"></pre>
+
+  <script>
+    document.getElementById('send').onclick = () => {
+      const user = document.getElementById('user').value.trim();
+      if (!user) return alert('Informe um username');
+      fetch(`/api/command/${user}`, { method: 'POST' })
+        .then(r => r.json())
+        .then(j => {
+          document.getElementById('status').innerText =
+            JSON.stringify(j, null, 2);
+        })
+        .catch(err => {
+          document.getElementById('status').innerText = err;
+        });
+    };
+  </script>
+</body>
+</html>
