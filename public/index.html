@@ -1,39 +1,101 @@
 <!DOCTYPE html>
 <html lang="pt">
 <head>
-  <meta charset="UTF-8"/>
+  <meta charset="UTF-8">
   <title>StealthMonitor – Mapa</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
 
-  <!-- Leaflet CSS via CDN -->
+  <!-- Leaflet CSS via CDN (sem integrity para evitar bloqueios) -->
   <link
     rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    integrity="sha512-kZ5A+gHqOtVY+gzXeDk4k4X1RLqYk3O3OB3F8M1SmZ0t8MFeC+72/PCWjH0cehceU6s2vmGZC8ROw+FtoYuvPg=="
-    crossorigin=""
+    href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
   />
 
-  <script
-    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-    integrity="sha512-gZwIG9x3wUXg3zY1pYXmIFpSDksheOH6UFV3nlrsYtx36jF27w+O+lNEkL8UadF0KZV+4l5zUWR3D8yx+I5Liw=="
-    crossorigin=""
-  ></script>
-
   <style>
-    html, body { height:100%; margin:0; padding:0; font-family:sans-serif; }
-    #map { display:none; width:100%; height:100%; }
+    html, body {
+      margin:0; padding:0; height:100%; font-family:sans-serif;
+    }
+    #map {
+      display:none;
+      width:100%; height:100%;
+    }
     #message {
       position:absolute; inset:0;
-      display:flex; flex-direction:column;
-      align-items:center; justify-content:center;
-      background:#fff; color:#333; text-align:center;
-      padding:1rem;
+      display:flex; align-items:center; justify-content:center;
+      text-align:center; padding:1rem;
+      background:#fff; color:#333;
+      z-index:1000;
     }
-    #message.error { background:#fee; color:#900; }
+    #message.error {
+      background:#fee; color:#900;
+    }
   </style>
 </head>
 <body>
-  <div id="message">Inicializando…</div>
+
+  <div id="message">Inicializando mapa…</div>
   <div id="map"></div>
+
+  <!-- Leaflet JS via CDN -->
+  <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+
+  <script>
+    (async function() {
+      const msg = document.getElementById('message');
+      const mapEl = document.getElementById('map');
+      const apiUrl = window.location.origin + '/api/data';
+
+      function setMsg(text, isError=false) {
+        msg.textContent = text;
+        msg.classList.toggle('error', isError);
+        msg.style.display = 'flex';
+        if (isError) mapEl.style.display = 'none';
+      }
+      try {
+        setMsg('Buscando dados…');
+        const res = await fetch(apiUrl);
+        if (!res.ok) {
+          const txt = await res.text();
+          throw new Error(`HTTP ${res.status}: ${txt}`);
+        }
+        const points = await res.json();
+        setMsg(points.length
+          ? `Plotando ${points.length} ponto(s)…`
+          : 'Nenhum dado coletado ainda.');
+
+        // Se há pontos, mostra o mapa
+        if (points.length) {
+          mapEl.style.display = 'block';
+          // inicializa mapa
+          const map = L.map('map').setView(
+            [points[0].location.lat, points[0].location.lng], 8
+          );
+          L.tileLayer(
+            'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+            { attribution: '© OpenStreetMap' }
+          ).addTo(map);
+
+          // plota marcadores
+          points.forEach(p => {
+            if (p.location && p.location.lat != null) {
+              L.marker([p.location.lat, p.location.lng])
+                .addTo(map)
+                .bindPopup(
+                  `<b>${p.username}</b><br>` +
+                  `${new Date(p.timestamp).toLocaleString()}`
+                );
+            }
+          });
+          // esconde mensagem
+          msg.style.display = 'none';
+        }
+      } catch (e) {
+        setMsg('Erro ao carregar dados:\n' + e.message, true);
+      }
+    })();
+  </script>
+</body>
+</html>
 
   <script>
     (async function() {
