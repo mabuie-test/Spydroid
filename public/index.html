@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="pt">
 <head>
-  <meta charset="UTF-8">
-  <title>StealthMonitor – Rastreamento</title>
+  <meta charset="UTF-8"/>
+  <title>StealthMonitor – Mapa</title>
 
   <!-- Leaflet CSS via CDN -->
   <link
@@ -12,7 +12,6 @@
     crossorigin=""
   />
 
-  <!-- Leaflet JS via CDN -->
   <script
     src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
     integrity="sha512-gZwIG9x3wUXg3zY1pYXmIFpSDksheOH6UFV3nlrsYtx36jF27w+O+lNEkL8UadF0KZV+4l5zUWR3D8yx+I5Liw=="
@@ -20,20 +19,68 @@
   ></script>
 
   <style>
-    html, body {
-      height: 100%;
-      margin: 0;
-      padding: 0;
-      font-family: sans-serif;
-    }
-
-    #map {
-      width: 100%;
-      height: 100%;
-      display: none;
-    }
-
+    html, body { height:100%; margin:0; padding:0; font-family:sans-serif; }
+    #map { display:none; width:100%; height:100%; }
     #message {
+      position:absolute; inset:0;
+      display:flex; flex-direction:column;
+      align-items:center; justify-content:center;
+      background:#fff; color:#333; text-align:center;
+      padding:1rem;
+    }
+    #message.error { background:#fee; color:#900; }
+  </style>
+</head>
+<body>
+  <div id="message">Inicializando…</div>
+  <div id="map"></div>
+
+  <script>
+    (async function() {
+      const msg = document.getElementById('message');
+      const mapEl = document.getElementById('map');
+      const apiUrl = window.location.origin + '/api/data';
+
+      try {
+        msg.textContent = 'Buscando dados em ' + apiUrl;
+        const res = await fetch(apiUrl);
+
+        if (!res.ok) {
+          // mostra status e corpo de erro
+          const text = await res.text();
+          throw new Error(`HTTP ${res.status}\n${text}`);
+        }
+
+        const points = await res.json();
+        msg.textContent = points.length
+          ? 'Plotando ' + points.length + ' pontos'
+          : 'Nenhum dado coletado ainda';
+
+        // inicializa mapa
+        mapEl.style.display = 'block';
+        const map = L.map('map').setView([0, 0], 2);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        points.forEach(p => {
+          if (p.location?.lat && p.location?.lng) {
+            L.marker([p.location.lat, p.location.lng])
+              .bindPopup(`<b>${p.username}</b><br>${new Date(p.timestamp).toLocaleString()}`)
+              .addTo(map);
+          }
+        });
+
+        // esconde a mensagem após plotar (se houver pontos)
+        if (points.length) msg.classList.add('hidden');
+      } catch (e) {
+        msg.classList.add('error');
+        msg.textContent = 'Erro ao carregar dados:\n' + e.message;
+      }
+    })();
+  </script>
+</body>
+</html>
       position: absolute;
       top: 0; left: 0; right: 0; bottom: 0;
       display: flex;
