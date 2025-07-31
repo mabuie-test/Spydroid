@@ -1,7 +1,7 @@
 {
-  "name": "stealth-backend",
+  "name": "stealth-web",
   "version": "1.0.0",
-  "description": "Backend Node.js para StealthMonitor",
+  "description": "Backend + Frontend Web para StealthMonitor",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
