@@ -2,32 +2,28 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>StealthMonitor Admin</title>
+  <title>StealthMonitor – Admin</title>
   <style>
-    body { font-family: sans-serif; margin:20px }
-    input, button { padding:8px; margin:4px 0; width:100% }
+    body { font-family:sans-serif; margin:2rem }
+    input, button { font-size:1rem; padding:.5rem; margin:.5rem 0; width:100% }
+    pre { background:#f4f4f4; padding:1rem }
   </style>
 </head>
 <body>
   <h1>Painel Admin</h1>
   <p>Envie comando <strong>hardreset</strong> para um usuário:</p>
-  <input id="user" placeholder="Digite o username" />
+  <input id="user" placeholder="Username" />
   <button id="send">Enviar Hard-Reset</button>
-  <pre id="status"></pre>
+  <pre id="output"></pre>
 
   <script>
     document.getElementById('send').onclick = () => {
-      const user = document.getElementById('user').value.trim();
-      if (!user) return alert('Informe um username');
-      fetch(`/api/command/${user}`, { method: 'POST' })
+      const u = document.getElementById('user').value.trim();
+      if (!u) return alert('Informe um username');
+      fetch(`/api/command/${u}`, { method: 'POST' })
         .then(r => r.json())
-        .then(j => {
-          document.getElementById('status').innerText =
-            JSON.stringify(j, null, 2);
-        })
-        .catch(err => {
-          document.getElementById('status').innerText = err;
-        });
+        .then(j => document.getElementById('output').textContent = JSON.stringify(j, null, 2))
+        .catch(e => document.getElementById('output').textContent = e);
     };
   </script>
 </body>
