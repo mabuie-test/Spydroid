@@ -7,7 +7,7 @@ const app = express();
 
 // Configura CORS (substitua pela URL do seu front-end se quiser restringir)
 app.use(cors({
-  origin: 'https://seu-frontend.netlify.app'  // ou simplesmente app.use(cors()) para liberar todas
+  origin: 'https://olhar.onrender.com'  // ou simplesmente app.use(cors()) para liberar todas
 }));
 
 app.use(express.json());
