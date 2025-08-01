@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head><meta charset="UTF-8"><title>Teste API</title></head>
+<body>
+  <h2>Retorno de <code>/api/data</code>:</h2>
+  <pre id="out">Carregando…</pre>
+  <script>
+    fetch('/api/data')
+      .then(async res => {
+        document.getElementById('out').textContent =
+          `HTTP ${res.status}\n\n` + await res.text();
+      })
+      .catch(e => {
+        document.getElementById('out').textContent =
+          'Erro de conexão:\n' + e;
+      });
+  </script>
+</body>
+</html>
