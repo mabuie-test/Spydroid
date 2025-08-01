@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <title>StealthMonitor – Teste API</title>
+  <style>
+    body { font-family: sans-serif; margin: 2rem; }
+    input, button, pre { width: 100%; margin: .5rem 0; }
+    pre { background: #f4f4f4; padding: 1rem; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <h1>Teste de `/api/data`</h1>
+  <p>Insira seu <strong>Bearer Token</strong> para consultar seus dados:</p>
+  <input id="token" type="text" placeholder="Token JWT" />
+  <button id="btnFetch">Buscar Dados</button>
+  <pre id="output">Aguardando ação...</pre>
+
+  <script>
+    document.getElementById('btnFetch').onclick = async () => {
+      const token = document.getElementById('token').value.trim();
+      const out   = document.getElementById('output');
+      if (!token) {
+        out.textContent = 'Por favor, informe um token JWT.';
+        return;
+      }
+      out.textContent = 'Buscando…';
+      try {
+        const res = await fetch('/api/data', {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const text = await res.text();
+        out.textContent = `HTTP ${res.status}\n\n${text}`;
+      } catch (e) {
+        out.textContent = 'Erro de conexão:\n' + e;
+      }
+    };
+  </script>
+</body>
+</html>
