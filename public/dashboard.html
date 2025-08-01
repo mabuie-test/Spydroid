@@ -3,13 +3,34 @@
 <head>
   <meta charset="UTF-8">
   <title>StealthMonitor – Dashboard</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+
+  <!-- Seu CSS -->
   <link rel="stylesheet" href="css/style.css">
-  <link rel="stylesheet" href="leaflet/leaflet.css">
+
+  <!-- Leaflet CSS (local ou CDN) -->
+  <link
+    rel="stylesheet"
+    href="leaflet/leaflet.css"
+  />
+  <style>
+    body, html { margin:0; height:100%; }
+    #map { display:none; width:100%; height:calc(100% - 40px); }
+    #msg {
+      height:40px; line-height:40px; text-align:center;
+      background:#fafafa; border-bottom:1px solid #ddd;
+    }
+    #logout { position:absolute; top:5px; right:5px; z-index:1000; }
+  </style>
 </head>
 <body>
   <button id="logout">Logout</button>
-  <div id="map" style="height:80vh;"></div>
+  <div id="msg">Inicializando dashboard…</div>
+  <div id="map"></div>
+
+  <!-- Leaflet JS -->
   <script src="leaflet/leaflet.js"></script>
+  <!-- Seu código de dashboard -->
   <script src="js/dashboard.js"></script>
 </body>
 </html>
