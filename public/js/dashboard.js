@@ -1,36 +1,64 @@
 (async () => {
-  const token = localStorage.getItem('sm_token');
-  if (!token) return window.location = 'index.html';
+  const msg = document.getElementById('msg');
+  const mapEl = document.getElementById('map');
+  const logoutBtn = document.getElementById('logout');
 
-  document.getElementById('logout').onclick = () => {
+  // Logout
+  logoutBtn.onclick = () => {
     localStorage.removeItem('sm_token');
     window.location = 'index.html';
   };
 
-  const res = await fetch(window.location.origin + '/api/data', {
-    headers: { Authorization: 'Bearer ' + token }
-  });
-
-  if (!res.ok) {
-    alert('Erro ao buscar dados: ' + res.status);
+  // Recupera token
+  const token = localStorage.getItem('sm_token');
+  if (!token) {
+    msg.textContent = 'Usuário não autenticado. Redirecionando…';
+    setTimeout(() => window.location = 'index.html', 1000);
     return;
   }
 
-  const pts = await res.json();
+  // Busca dados
+  msg.textContent = 'Buscando dados…';
+  let pts;
+  try {
+    const res = await fetch(window.location.origin + '/api/data', {
+      headers: { Authorization: 'Bearer ' + token }
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`HTTP ${res.status}: ${text}`);
+    }
+    pts = await res.json();
+  } catch (e) {
+    msg.textContent = 'Erro ao buscar dados: ' + e.message;
+    msg.style.color = 'red';
+    return;
+  }
 
-  const map = L.map('map').setView([0, 0], 2);
+  if (!Array.isArray(pts) || pts.length === 0) {
+    msg.textContent = 'Nenhum dado coletado ainda.';
+    return;
+  }
+
+  // Inicia o mapa
+  msg.textContent = `Plotando ${pts.length} ponto(s)…`;
+  mapEl.style.display = 'block';
+  const first = pts[0].location;
+  const map = L.map('map').setView([first.lat, first.lng], 8);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap'
   }).addTo(map);
 
-  if (pts.length) {
-    map.setView([pts[0].location.lat, pts[0].location.lng], 8);
-    pts.forEach(p => {
-      L.marker([p.location.lat, p.location.lng])
-       .addTo(map)
-       .bindPopup(`<b>${p.username}</b><br>${new Date(p.timestamp).toLocaleString()}`);
-    });
-  } else {
-    alert('Nenhum dado para este usuário.');
-  }
+  // Plota marcadores
+  pts.forEach(p => {
+    const loc = p.location;
+    if (loc && loc.lat != null) {
+      L.marker([loc.lat, loc.lng])
+       .bindPopup(`<b>${p.username}</b><br>${new Date(p.timestamp).toLocaleString()}`)
+       .addTo(map);
+    }
+  });
+
+  // Oculta mensagem
+  msg.style.display = 'none';
 })();
