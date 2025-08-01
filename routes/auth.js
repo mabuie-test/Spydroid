@@ -1,11 +1,7 @@
 const router = require('express').Router();
-const { postData, getData } = require('../controllers/dataController');
-const auth = require('../middleware/auth');
+const { register, login } = require('../controllers/authController');
 
-// App Android envia
-router.post('/data', postData);
-
-// Front-end protegido
-router.get('/data', auth, getData);
+router.post('/register', register);
+router.post('/login',    login);
 
 module.exports = router;
