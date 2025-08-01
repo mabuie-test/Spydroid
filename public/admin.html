@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <title>StealthMonitor – Painel Admin</title>
+  <style>
+    body { font-family: sans-serif; margin: 2rem; }
+    input, button, pre { width: 100%; margin: .5rem 0; }
+    pre { background: #f4f4f4; padding: 1rem; }
+  </style>
+</head>
+<body>
+  <h1>Admin – Hard Reset</h1>
+
+  <h2>1. Login Admin</h2>
+  <input id="admUser" placeholder="Usuário admin" />
+  <input id="admPass" type="password" placeholder="Senha admin" />
+  <button id="btnAdminLogin">Login</button>
+  <pre id="loginStatus">Não autenticado</pre>
+
+  <h2>2. Enviar comando hardreset</h2>
+  <input id="targetUser" placeholder="Username de destino" />
+  <button id="btnSend">Enviar Hard Reset</button>
+  <pre id="cmdStatus">Aguardando comando…</pre>
+
+  <script>
+    let adminToken = '';
+
+    document.getElementById('btnAdminLogin').onclick = async () => {
+      const user = document.getElementById('admUser').value.trim();
+      const pass = document.getElementById('admPass').value.trim();
+      const status = document.getElementById('loginStatus');
+      if (!user || !pass) {
+        status.textContent = 'Informe usuário e senha.';
+        return;
+      }
+      status.textContent = 'Autenticando…';
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: user, password: pass })
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || res.status);
+        adminToken = json.token;
+        status.textContent = 'Autenticado com sucesso!';
+      } catch (e) {
+        status.textContent = 'Erro no login: ' + e.message;
+      }
+    };
+
+    document.getElementById('btnSend').onclick = async () => {
+      const target = document.getElementById('targetUser').value.trim();
+      const status = document.getElementById('cmdStatus');
+      if (!adminToken) {
+        status.textContent = 'Faça login como admin primeiro.';
+        return;
+      }
+      if (!target) {
+        status.textContent = 'Informe o username alvo.';
+        return;
+      }
+      status.textContent = 'Enviando comando…';
+      try {
+        const res = await fetch(`/api/command/${encodeURIComponent(target)}`, {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + adminToken
+          }
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || res.status);
+        status.textContent = 'Comando enviado: ' + JSON.stringify(json);
+      } catch (e) {
+        status.textContent = 'Erro ao enviar: ' + e.message;
+      }
+    };
+  </script>
+</body>
+</html>
