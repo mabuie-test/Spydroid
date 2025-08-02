@@ -1,16 +1,31 @@
 <!DOCTYPE html>
 <html lang="pt">
 <head>
-  <meta charset="UTF-8"/>
-  <title>StealthMonitor – Login</title>
-  <link rel="stylesheet" href="css/style.css"/>
+  <meta charset="UTF-8" />
+  <title>StealthMonitor – Entrar / Registrar</title>
+  <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
   <div class="container">
-    <h1>Entrar</h1>
-    <input id="user" placeholder="Username"/>
-    <button id="btnLogin">Login</button>
+    <!-- LOGIN -->
+    <div id="loginForm">
+      <h1>Entrar</h1>
+      <input id="loginUser"    type="text"     placeholder="Usuário" />
+      <input id="loginPass"    type="password" placeholder="Senha"   />
+      <button id="btnLogin">Login</button>
+      <p>Não tem conta? <a href="#" id="showRegister">Registre-se</a></p>
+    </div>
+
+    <!-- REGISTRO -->
+    <div id="registerForm" style="display:none">
+      <h1>Registrar</h1>
+      <input id="regUser"     type="text"     placeholder="Usuário" />
+      <input id="regPass"     type="password" placeholder="Senha"   />
+      <button id="btnRegister">Registrar</button>
+      <p>Já tem conta? <a href="#" id="showLogin">Faça login</a></p>
+    </div>
   </div>
+
   <script src="js/script.js"></script>
 </body>
 </html>
