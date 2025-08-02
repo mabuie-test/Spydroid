@@ -1,0 +1,6 @@
+<!DOCTYPE html><html lang="pt"><head><meta charset="UTF-8"><title>Test API</title></head><body>
+<h1>Teste /api/data</h1>
+<input id="t" placeholder="JWT Token"/><button onclick="
+fetch('/api/data',{headers:{Authorization:'Bearer '+document.getElementById('t').value}})
+.then(r=>r.text()).then(t=>document.body.append(t))">Buscar</button>
+</body></html>
